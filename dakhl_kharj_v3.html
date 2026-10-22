@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دخل و خرج من</title>
+<style>
+:root{--gold:#f6c94b;--cream:#fff9e9;--ink:#5e4a2d;--line:#eadfbe;--green:#28764a;--red:#b94a48}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:Tahoma,Arial,sans-serif}
+header{background:var(--gold);padding:18px 16px 20px;border-radius:0 0 24px 24px;position:sticky;top:0;z-index:2}
+h1{font-size:22px;margin:0 0 5px}header p{margin:0;font-size:12px}
+.wrap{padding:14px 14px 88px;max-width:760px;margin:auto}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat,.tile,.panel{background:#fffdf6;border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 4px 12px #8c6a1710}
+.stat small{display:block;font-size:12px;margin-bottom:10px}.stat strong{font-size:15px;overflow-wrap:anywhere}.stat.total{background:#fff0b9}
+h2{font-size:17px;margin:22px 2px 12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.tile{min-height:104px;text-align:center;cursor:pointer;color:var(--ink);font:inherit;font-weight:bold}
+.tile span{display:block;font-size:27px;margin-bottom:8px}.tile:active{transform:scale(.98)}
+.panel{margin-top:14px}.hidden{display:none!important}
+label{display:block;font-size:13px;margin:10px 0 5px}
+input,select,textarea,button{font:inherit}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;background:white;color:var(--ink)}
+textarea{min-height:80px}
+button{border:0;border-radius:12px;padding:12px 14px;background:var(--gold);color:#473514;font-weight:bold;cursor:pointer;margin-top:10px}
+button.secondary{background:#f4ecd7}button.danger{background:#f7dddd;color:#922}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.item{border-bottom:1px solid #eee4cc;padding:11px 0;display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.item:last-child{border-bottom:0}.muted{font-size:12px;color:#88785e}.plus{color:var(--green)}.minus{color:var(--red)}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fffdf7;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 2px calc(8px + env(safe-area-inset-bottom));z-index:3}
+nav button{background:transparent;margin:0;padding:7px 4px;font-size:12px;font-weight:normal}
+nav button.active{background:#fff0b9;border-radius:12px;font-weight:bold}
+.note{background:#fff3c8;border-radius:12px;padding:10px;font-size:12px;line-height:1.8}
+#lockScreen{position:fixed;inset:0;z-index:99;background:var(--cream);display:flex;align-items:center;justify-content:center;padding:22px}#lockScreen .panel{width:100%;max-width:420px;margin:0}#lockMsg{min-height:22px;color:var(--red);font-size:12px}
+@media(max-width:370px){.grid{grid-template-columns:repeat(2,1fr)}.stat{padding:10px}.stat strong{font-size:12px}}
+</style>
+</head>
+<body>
+<div id="lockScreen"><div class="panel"><h2 style="margin-top:0">🔐 قفل دخل‌وخرج من</h2><p id="lockIntro">برای محافظت از برنامه، یک رمز ورود بساز.</p><label for="pinInput">رمز ورود (حداقل ۴ رقم)</label><input id="pinInput" type="password" inputmode="numeric" autocomplete="off" placeholder="رمز ورود"><div id="confirmWrap"><label for="pinConfirm">تکرار رمز</label><input id="pinConfirm" type="password" inputmode="numeric" autocomplete="off" placeholder="تکرار رمز"></div><button id="pinButton" type="button">ثبت رمز و ورود</button><p id="lockMsg"></p><p class="muted">رمز این نسخه برای قفل سادهٔ برنامه است و جایگزین امنیت کامل گوشی نیست.</p></div></div>
+<header><h1>💛 دخل و خرج من</h1><p>مدیریت یک‌جای پول‌ها، حساب‌ها و برنامه‌های مالی</p></header>
+<main class="wrap">
+<section id="home">
+<div class="summary">
+<div class="stat total"><small>موجودی کل</small><strong id="total">۰ تومان</strong></div>
+<div class="stat"><small>درآمد این ماه</small><strong id="income" class="plus">۰ تومان</strong></div>
+<div class="stat"><small>هزینه این ماه</small><strong id="expense" class="minus">۰ تومان</strong></div>
+</div>
+<h2>دسترسی سریع</h2>
+<div class="grid" id="tiles"></div>
+<div class="panel"><h2 style="margin-top:0">آخرین تراکنش‌ها</h2><div id="recent" class="muted">هنوز تراکنشی ثبت نشده.</div></div>
+</section>
+<section id="accounts" class="hidden">
+<h2>💳 کارت‌های بانکی و حساب‌ها</h2>
+<div class="panel">
+<label>نام بانک یا حساب</label><input id="bankName" placeholder="مثلاً بانک ملی یا پول نقد">
+<label>موجودی اولیه (تومان)</label><input id="bankBalance" type="number" min="0" placeholder="مثلاً 5000000">
+<button onclick="addAccount()">افزودن حساب</button>
+</div><div class="panel"><h2 style="margin-top:0">حساب‌های من</h2><div id="accountList"></div></div>
+</section>
+<section id="entry" class="hidden">
+<h2 id="entryTitle">ثبت مورد مالی</h2>
+<div class="panel">
+<label>عنوان</label><input id="title" placeholder="مثلاً کرایه مغازه">
+<div class="row"><div><label>مبلغ (تومان)</label><input id="amount" type="number" min="1" placeholder="مبلغ"></div><div><label>تاریخ</label><input id="date" type="date"></div></div>
+<label>نوع عملیات</label><select id="kind"><option value="expense">هزینه؛ از موجودی کم شود</option><option value="income">درآمد؛ به موجودی اضافه شود</option><option value="transfer">انتقال بین حساب‌ها؛ جمع کل ثابت بماند</option></select>
+<label>حساب مبدأ / حساب مربوط</label><select id="account"></select>
+<div id="destWrap" class="hidden"><label>حساب مقصد</label><select id="destination"></select></div>
+<label>یادداشت (اختیاری)</label><textarea id="memo" placeholder="توضیحات بیشتر..."></textarea>
+<button onclick="saveEntry()">ثبت و به‌روزرسانی موجودی</button>
+<p class="muted">هزینه‌ها از حساب انتخاب‌شده کم می‌شوند؛ درآمدها اضافه می‌شوند؛ انتقال بین حساب‌ها روی موجودی کل اثر ندارد.</p>
+</div>
+</section>
+<section id="due" class="hidden">
+<h2>📅 قسط‌ها و سررسیدها</h2>
+<div class="panel">
+<label>عنوان پرداخت یا سررسید</label><input id="dueTitle" placeholder="مثلاً قسط خودرو">
+<div class="row"><div><label>مبلغ (تومان)</label><input id="dueAmount" type="number" min="0"></div><div><label>تاریخ سررسید</label><input id="dueDate" type="date"></div></div>
+<button onclick="addDue()">افزودن سررسید</button>
+<div class="note">ثبت سررسید به‌تنهایی موجودی را تغییر نمی‌دهد. وقتی پرداختش کردی، از بخش مربوطه هزینه را ثبت کن تا دوبار از حساب کم نشود.</div>
+</div><div class="panel"><div id="dueList"></div></div>
+</section>
+<section id="reports" class="hidden">
+<h2>📊 گزارش مالی</h2><div class="panel"><div id="report"></div></div>
+</section>
+<section id="notes" class="hidden">
+<h2>📝 یادداشت روزانه</h2><div class="panel"><label>یادداشت</label><textarea id="noteText" placeholder="یادداشت امروز..."></textarea><button onclick="addNote()">ذخیره یادداشت</button><div id="noteList"></div></div>
+</section>
+<section id="settings" class="hidden">
+<h2>⚙️ تنظیمات و پشتیبان‌گیری</h2><div class="panel">
+<p>اطلاعات این نسخه روی همین مرورگر ذخیره می‌شود.</p>
+<button onclick="backup()">دریافت فایل پشتیبان</button>
+<label>بازیابی فایل پشتیبان</label><input id="restoreFile" type="file" accept=".json,application/json"><button onclick="restore()">بازیابی اطلاعات</button>
+<button class="danger" onclick="resetAll()">پاک کردن همه اطلاعات</button>
+<div class="note">برای جلوگیری از گم‌شدن اطلاعات، هر چند وقت یک‌بار پشتیبان بگیر. این نسخه آزمایشی است و هنوز قفل امن یا اعلان خودکار اندروید ندارد.</div>
+</div>
+</section>
+</main>
+<nav>
+<button class="active" data-page="home" onclick="showPage('home',this)">🏠 خانه</button>
+<button data-page="accounts" onclick="showPage('accounts',this)">💳 حساب‌ها</button>
+<button data-page="entry" onclick="newEntry()">➕ ثبت</button>
+<button data-page="due" onclick="showPage('due',this)">📅 سررسید</button>
+<button data-page="settings" onclick="showPage('settings',this)">⚙️ بیشتر</button>
+</nav>
+<script>
+const categories=[
+['دخل و خرج','💸','expense'],['تقویم شمسی','🗓️','due'],['تسهیلات و وام','🏦','due'],
+['مسافرت خارجی','✈️','expense'],['مسافرت داخلی','🇮🇷','expense'],['خرج ناگهانی','⚡','expense'],
+['حال خوب','😊','expense'],['مهربانی','💛','expense'],['پس‌انداز','🐷','transfer'],['بیمه','🛡️','expense'],
+['کرایه مغازه','🏢','expense'],['کرایه خانه','🏠','expense'],['قسط‌ها','📅','due'],
+['کارت‌های بانکی','💳','accounts'],['ماشین حساب','🧮','calc'],['یادداشت روزانه','📝','notes'],
+['درآمد مازاد','➕','income'],['درآمد مغازه','🛍️','income'],['درآمد آموزشگاه','🏫','income'],['گزارش مالی','📊','reports']];
+const $=id=>document.getElementById(id);
+let data={accounts:[],entries:[],dues:[],notes:[]};
+const PIN_KEY='dkh_app_pin'; let unlocked=false;
+try{data=Object.assign(data,JSON.parse(localStorage.getItem('dkh_data')||'{}'))}catch(e){}
+function persist(){localStorage.setItem('dkh_data',JSON.stringify(data));render()}
+function money(n){return Math.round(n||0).toLocaleString('fa-IR')+' تومان'}
+function dateNow(){return new Date().toISOString().slice(0,10)}
+$('date').value=dateNow();$('dueDate').value=dateNow();
+function showPage(id,btn){document.querySelectorAll('main>section').forEach(s=>s.classList.add('hidden'));$(id).classList.remove('hidden');document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render()}
+function newEntry(cat){showPage('entry',document.querySelector('nav button[data-page="entry"]'));$('title').value=cat||'';if(cat){$('entryTitle').textContent='ثبت: '+cat;$('kind').value=cat.startsWith('درآمد')?'income':'expense'}else $('entryTitle').textContent='ثبت مورد مالی';toggleDest()}
+// Build category tiles with event listeners instead of inline onclick attributes.
+// This avoids broken HTML when Persian category names are inserted into quoted attributes.
+$('tiles').innerHTML='';
+categories.forEach(([name,icon,act])=>{
+  const button=document.createElement('button');
+  button.className='tile';
+  const iconSpan=document.createElement('span');
+  iconSpan.textContent=icon;
+  button.appendChild(iconSpan);
+  button.appendChild(document.createTextNode(name));
+  button.addEventListener('click',()=>{
+    if(act==='calc'){calculator();return;}
+    if(act==='income'||act==='expense'){newEntry(name);return;}
+    showPage(act,null);
+    if(act==='due') $('entryTitle').textContent='';
+  });
+  $('tiles').appendChild(button);
+});
+function addAccount(){let name=$('bankName').value.trim(),bal=Number($('bankBalance').value);if(!name||$('bankBalance').value===''||bal<0)return alert('نام حساب و موجودی اولیه را وارد کن.');data.accounts.push({id:Date.now()+Math.random(),name,initial:bal});$('bankName').value='';$('bankBalance').value='';persist()}
+function accountBalance(a){return a.initial+data.entries.reduce((sum,e)=>{if(e.kind==='income'&&e.account==a.id)sum+=e.amount;if(e.kind==='expense'&&e.account==a.id)sum-=e.amount;if(e.kind==='transfer'){if(e.account==a.id)sum-=e.amount;if(e.destination==a.id)sum+=e.amount}return sum},0)}
+function fillAccounts(){let opts=data.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');$('account').innerHTML=opts||'<option value="">اول یک حساب بساز</option>';$('destination').innerHTML=opts}
+$('kind').addEventListener('change',toggleDest);function toggleDest(){$('destWrap').classList.toggle('hidden',$('kind').value!=='transfer')}
+function saveEntry(){let title=$('title').value.trim(),amount=Number($('amount').value),kind=$('kind').value,account=Number($('account').value),destination=Number($('destination').value);if(!data.accounts.length)return alert('اول از بخش حساب‌ها یک حساب اضافه کن.');if(!title||!amount||amount<=0)return alert('عنوان و مبلغ معتبر وارد کن.');if(kind==='transfer'&&(!destination||destination===account))return alert('حساب مقصد را متفاوت از مبدأ انتخاب کن.');if(kind==='expense'&&accountBalance(data.accounts.find(a=>a.id===account))<amount&&!confirm('موجودی این حساب کافی نیست. با این حال ثبت شود؟'))return;
+data.entries.push({id:Date.now()+Math.random(),title,amount,kind,account,destination:kind==='transfer'?destination:null,date:$('date').value||dateNow(),memo:$('memo').value});$('title').value='';$('amount').value='';$('memo').value='';persist();showPage('home',document.querySelector('nav button[data-page="home"]'));alert('ثبت شد و موجودی‌ها به‌روزرسانی شدند.')}
+function addDue(){let title=$('dueTitle').value.trim(),amount=Number($('dueAmount').value),date=$('dueDate').value;if(!title||!date)return alert('عنوان و تاریخ را وارد کن.');data.dues.push({id:Date.now(),title,amount,date});$('dueTitle').value='';$('dueAmount').value='';persist()}
+function addNote(){let text=$('noteText').value.trim();if(!text)return alert('یادداشتی وارد کن.');data.notes.unshift({text,date:dateNow()});$('noteText').value='';persist()}
+function calculator(){let a=prompt('عدد اول را وارد کن');if(a===null)return;let op=prompt('عملیات را وارد کن: +  -  *  /');let b=prompt('عدد دوم را وارد کن');if(b===null)return;let x=Number(a),y=Number(b),r=op==='+'?x+y:op==='-'?x-y:op==='*'?x*y:op==='/'?x/y:NaN;alert(Number.isFinite(r)?'نتیجه: '+r.toLocaleString('fa-IR'):'عملیات معتبر نیست.')}
+function render(){fillAccounts();let total=data.accounts.reduce((s,a)=>s+accountBalance(a),0),month=dateNow().slice(0,7),inc=data.entries.filter(e=>e.kind==='income'&&e.date.startsWith(month)).reduce((s,e)=>s+e.amount,0),exp=data.entries.filter(e=>e.kind==='expense'&&e.date.startsWith(month)).reduce((s,e)=>s+e.amount,0);$('total').textContent=money(total);$('income').textContent=money(inc);$('expense').textContent=money(exp);
+$('accountList').innerHTML=data.accounts.map(a=>`<div class="item"><div><b>${esc(a.name)}</b><div class="muted">موجودی اولیه: ${money(a.initial)}</div></div><b>${money(accountBalance(a))}</b></div>`).join('')||'هنوز حسابی اضافه نشده.';
+let recent=[...data.entries].reverse().slice(0,8);$('recent').innerHTML=recent.map(e=>`<div class="item"><div><b>${esc(e.title)}</b><div class="muted">${esc(e.date)} · ${e.kind==='income'?'درآمد':e.kind==='expense'?'هزینه':'انتقال'}</div></div><b class="${e.kind==='income'?'plus':e.kind==='expense'?'minus':''}">${e.kind==='expense'?'−':e.kind==='income'?'+':'↔'} ${money(e.amount)}</b></div>`).join('')||'هنوز تراکنشی ثبت نشده.';
+$('dueList').innerHTML=[...data.dues].sort((a,b)=>a.date.localeCompare(b.date)).map(d=>`<div class="item"><div><b>${esc(d.title)}</b><div class="muted">${esc(d.date)}</div></div><div><b>${money(d.amount)}</b><button class="secondary" onclick="payDue(${d.id})">ثبت پرداخت</button></div></div>`).join('')||'سررسیدی ثبت نشده.';
+$('report').innerHTML=`<div class="item"><span>کل درآمد ثبت‌شده</span><b class="plus">${money(data.entries.filter(e=>e.kind==='income').reduce((s,e)=>s+e.amount,0))}</b></div><div class="item"><span>کل هزینه ثبت‌شده</span><b class="minus">${money(data.entries.filter(e=>e.kind==='expense').reduce((s,e)=>s+e.amount,0))}</b></div><div class="item"><span>تعداد حساب‌ها</span><b>${data.accounts.length.toLocaleString('fa-IR')}</b></div><div class="item"><span>تعداد تراکنش‌ها</span><b>${data.entries.length.toLocaleString('fa-IR')}</b></div>`;
+$('noteList').innerHTML=data.notes.map(n=>`<div class="item"><div>${esc(n.text)}<div class="muted">${esc(n.date)}</div></div></div>`).join('')}
+function payDue(id){let d=data.dues.find(x=>x.id===id);if(!data.accounts.length)return alert('اول یک حساب اضافه کن.');if(!confirm('پرداخت «'+d.title+'» ثبت شود و از موجودی کم شود؟'))return;showPage('entry',document.querySelector('nav button[data-page="entry"]'));$('title').value=d.title;$('amount').value=d.amount;$('kind').value='expense';toggleDest();data.dues=data.dues.filter(x=>x.id!==id);persist();alert('فرم هزینه آماده شد؛ حساب را انتخاب کن و دکمه ثبت را بزن.')}
+function backup(){let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='poshtiban-dakhl-kharj.json';a.click();URL.revokeObjectURL(url)}
+function restore(){let f=$('restoreFile').files[0];if(!f)return alert('فایل پشتیبان را انتخاب کن.');let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);if(!Array.isArray(d.accounts)||!Array.isArray(d.entries))throw 0;data=Object.assign({accounts:[],entries:[],dues:[],notes:[]},d);persist();alert('پشتیبان بازیابی شد.')}catch(e){alert('فایل پشتیبان معتبر نیست.')}};r.readAsText(f)}
+function resetAll(){if(confirm('همه حساب‌ها و اطلاعات پاک شوند؟ قبلش پشتیبان بگیر.')){data={accounts:[],entries:[],dues:[],notes:[]};persist()}}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+render();
+function setupPinScreen(){const hasPin=!!localStorage.getItem(PIN_KEY);$('lockIntro').textContent=hasPin?'رمز ورودت را وارد کن.':'برای محافظت از برنامه، یک رمز ورود بساز.';$('confirmWrap').classList.toggle('hidden',hasPin);$('pinButton').textContent=hasPin?'ورود':'ثبت رمز و ورود';}
+function unlockApp(){const pin=$('pinInput').value,hasPin=!!localStorage.getItem(PIN_KEY);if(!/^\d{4,}$/.test(pin)){$('lockMsg').textContent='رمز باید حداقل ۴ رقم باشد.';return;}if(hasPin){if(pin!==localStorage.getItem(PIN_KEY)){$('lockMsg').textContent='رمز درست نیست. دوباره امتحان کن.';$('pinInput').value='';return;}}else{if(pin!==$('pinConfirm').value){$('lockMsg').textContent='دو رمز با هم یکسان نیستند.';return;}localStorage.setItem(PIN_KEY,pin);}unlocked=true;$('lockScreen').classList.add('hidden');$('pinInput').value='';$('pinConfirm').value='';}
+$('pinButton').addEventListener('click',unlockApp);$('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')unlockApp()});$('pinConfirm').addEventListener('keydown',e=>{if(e.key==='Enter')unlockApp()});setupPinScreen();
+</script>
+</body></html>
